@@ -1,0 +1,50 @@
+# Yamanote Line-style commuter train. Original art for sl-neo.
+name: yamanote
+title: Yamanote Line-style commuter train
+title_ja: 山手線風の通勤電車
+speed: 1
+cars: 4
+wheel: |/-\
+color s: #c0c4c8
+color S: #555b61 on #c8ccd0
+color L: #355c0a on #9acd32
+color F: #9acd32 on #161616
+color H: #fff3a0 on #161616
+color K: #d6ecff on #22313b
+color D: #9a9a9a
+
+[front]
+  __________
+ /==========
+|[      ]  |
+|[      ]  |
+| ()  () __|
+|________|_|
+   (@)(@)
+--- mask
+  ssssssssss
+ sLLLLLLLLLL
+FFFFFFFFFSSS
+FFFFFFFFFSSS
+FFHHFFHHFSSS
+FFFFFFFFFSSS
+   DDDDDD
+
+[car]
+__________________________________
+==================================
+|  [==][==]  |  |  [==][==]  |  |
+|            |  |            |  |
+|            |  |            |  |
+|____________|__|____________|__|_
+    (@)(@)            (@)(@)
+--- mask
+ssssssssssssssssssssssssssssssssss
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+SSSKKKKKKKKSSLLLLSSKKKKKKKKSSLLLLS
+SSSSSSSSSSSSSLLLLSSSSSSSSSSSSLLLLS
+SSSSSSSSSSSSSLLLLSSSSSSSSSSSSLLLLS
+SSSSSSSSSSSSSLLLLSSSSSSSSSSSSLLLLS
+    DDDDDD            DDDDDD
+
+[back] mirror

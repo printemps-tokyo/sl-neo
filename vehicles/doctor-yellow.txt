@@ -1,0 +1,49 @@
+# Doctor Yellow-style track inspection train. Original art for sl-neo.
+name: doctor-yellow
+title: Doctor Yellow-style inspection train
+title_ja: ドクターイエロー風の検測車
+speed: 2
+cars: 3
+wheel: |/-\
+color y: #f5d000
+color Y: #6b5a00 on #f5d000
+color K: #d6ecff on #22313b
+color b: #1f4fa0
+color B: #ffffff on #1f4fa0
+color D: #9a9a9a
+
+[front]
+                ________________
+           ____/ [==] [==] [==]
+      ____/
+   __/
+ _/
+(_______________________________
+    (@)  (@)           (@)  (@)
+--- mask
+                yyyyyyyyyyyyyyyy
+           yyyyyYKKKKYKKKKYKKKKY
+      yyyyyYYYYYYYYYYYYYYYYYYYYY
+   bbbBBBBBBBBBBBBBBBBBBBBBBBBBB
+ yyYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+yYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+    DDD  DDD           DDD  DDD
+
+[car]
+____________________________________
+|  [==]  [==]  [==]  [==]  [==]
+|
+|
+|
+|___________________________________
+    (@)  (@)             (@)  (@)
+--- mask
+yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+YYYKKKKYYKKKKYYKKKKYYKKKKYYKKKKYYYYY
+YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+    DDD  DDD             DDD  DDD
+
+[back] mirror

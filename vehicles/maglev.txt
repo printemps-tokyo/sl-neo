@@ -1,0 +1,45 @@
+# Superconducting maglev. It floats, so there are no wheels. Original art for sl-neo.
+name: maglev
+title: maglev
+title_ja: リニア
+speed: 40
+cars: 2
+after: ...That was the maglev. Too fast to see?
+after_ja: ……今のはリニアです。速すぎて見えませんでしたか？
+color m: #dfe5ea
+color M: #8899aa on #f4f6f8
+color n: #1a4c9c
+color N: #ffffff on #1a4c9c
+color K: #d6ecff on #22313b
+
+[front]
+                            ____________________
+                    _______/ [] [] [] [] [] []
+            _______/
+    _______/
+ <______________________________________________
+                                                
+--- mask
+                            mmmmmmmmmmmmmmmmmmmm
+                    mmmmmmmmMKKMKKMKKMKKMKKMKKMM
+            mmmmmmmmMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    nnnnnnnnNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+ mMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+
+[car]
+________________________________________
+| [] [] [] [] [] [] [] [] [] [] [] [] []
+|
+|
+|_______________________________________
+                                        
+--- mask
+mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+MMKKMKKMKKMKKMKKMKKMKKMKKMKKMKKMKKMKKMKK
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+
+[back] mirror
