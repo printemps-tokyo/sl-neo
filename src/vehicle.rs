@@ -399,14 +399,8 @@ pub fn parse(src: &str) -> Result<Vehicle, ParseError> {
                     None => return err(n, "expected `key: value`"),
                 };
                 let k = k.trim().to_string();
-                // Header text reaches the terminal (titles, messages), so a
-                // train file must not be able to smuggle in escape sequences.
-                if let Some(bad) = v.chars().find(|c| c.is_control()) {
-                    return err(
-                        n,
-                        format!("{k} must not contain control characters, found {bad:?}"),
-                    );
-                }
+                // The key is checked against the list first, so an error never
+                // repeats an unchecked key (`{k:?}` escapes it).
                 if !matches!(
                     k.as_str(),
                     "name"
@@ -420,6 +414,14 @@ pub fn parse(src: &str) -> Result<Vehicle, ParseError> {
                         | "after_ja"
                 ) {
                     return err(n, format!("unknown key {k:?}"));
+                }
+                // Header text reaches the terminal (titles, messages), so a
+                // train file must not be able to smuggle in escape sequences.
+                if let Some(bad) = v.chars().find(|c| c.is_control()) {
+                    return err(
+                        n,
+                        format!("{k} must not contain control characters, found {bad:?}"),
+                    );
                 }
                 if header
                     .insert(k.clone(), (n, v.trim().to_string()))

@@ -214,3 +214,17 @@ fn header_text_cannot_carry_escape_sequences() {
     assert!(error_of("name: x\nafter_ja: \x07\n")
         .contains("after_ja must not contain control characters"));
 }
+
+#[test]
+fn error_messages_never_echo_control_characters() {
+    for src in [
+        "name: x\nevil\x1b[2J: \x07\n",
+        "name: x\nevil\x1b[2J: v\n",
+        "name: x\n[front]\na\x1b\n[car]\nb\n",
+        "name: x\ncolor G: #00\x1b0000\n",
+        "name: x\n\x1b[engine]\n",
+    ] {
+        let e = error_of(src);
+        assert!(!e.chars().any(|c| c.is_control()), "{e:?}");
+    }
+}
