@@ -204,3 +204,13 @@ fn only_the_maglev_opts_out_of_random_picks() {
         .collect();
     assert_eq!(random, vec!["e5", "doctor-yellow", "yamanote", "steam"]);
 }
+
+#[test]
+fn header_text_cannot_carry_escape_sequences() {
+    assert_eq!(
+        error_of("name: x\ntitle: a\x1b[2Jb\n[front]\na\n[car]\nb\n"),
+        "line 2: title must not contain control characters, found '\\u{1b}'"
+    );
+    assert!(error_of("name: x\nafter_ja: \x07\n")
+        .contains("after_ja must not contain control characters"));
+}

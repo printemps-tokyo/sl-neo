@@ -399,6 +399,14 @@ pub fn parse(src: &str) -> Result<Vehicle, ParseError> {
                     None => return err(n, "expected `key: value`"),
                 };
                 let k = k.trim().to_string();
+                // Header text reaches the terminal (titles, messages), so a
+                // train file must not be able to smuggle in escape sequences.
+                if let Some(bad) = v.chars().find(|c| c.is_control()) {
+                    return err(
+                        n,
+                        format!("{k} must not contain control characters, found {bad:?}"),
+                    );
+                }
                 if !matches!(
                     k.as_str(),
                     "name"
