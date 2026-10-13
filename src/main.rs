@@ -1,4 +1,7 @@
 use std::io::{self, IsTerminal, Write};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Context, Result};
@@ -12,9 +15,6 @@ use sl_neo::vehicle::{self, Vehicle, BUILTIN};
 
 /// Time per step.
 const STEP: Duration = Duration::from_millis(40);
-
-/// Trains picked at random; the maglev only comes with --linear or --train maglev.
-const RANDOM_POOL: &[&str] = &["e5", "doctor-yellow", "yamanote", "steam"];
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum ColorArg {
@@ -39,12 +39,16 @@ enum LangArg {
                   Like the original sl, Ctrl+C does nothing until the train has passed; pass -e to allow it.\n\
                   Make it your typo with: alias sl=sl-neo",
     after_help = "Trains: e5, doctor-yellow, yamanote, steam, maglev (see --list).\n\
-                  When the output is not a terminal, or with --still, the train is printed once."
+                  When the output is not a terminal (or TERM=dumb), or with --still, the train is printed once."
 )]
 struct Cli {
     /// Train to run (see --list); a random one when omitted
     #[arg(short = 't', long, value_name = "NAME")]
     train: Option<String>,
+
+    /// Run a train from a file in the vehicles/ format
+    #[arg(long, value_name = "PATH", conflicts_with_all = ["train", "linear"])]
+    file: Option<PathBuf>,
 
     /// List the trains and exit
     #[arg(long)]
@@ -99,7 +103,12 @@ fn env(k: &str) -> Option<String> {
     std::env::var(k).ok()
 }
 
-fn color_mode(arg: ColorArg, is_tty: bool) -> ColorMode {
+/// A terminal that can take cursor moves and colors: a TTY whose TERM is not "dumb".
+fn capable_terminal() -> bool {
+    io::stdout().is_terminal() && env("TERM").as_deref() != Some("dumb")
+}
+
+fn color_mode(arg: ColorArg, capable: bool) -> ColorMode {
     let rich = || match env("COLORTERM").as_deref() {
         Some("truecolor") | Some("24bit") => ColorMode::TrueColor,
         _ => ColorMode::Ansi256,
@@ -108,7 +117,7 @@ fn color_mode(arg: ColorArg, is_tty: bool) -> ColorMode {
         ColorArg::Never => ColorMode::None,
         ColorArg::Always => rich(),
         ColorArg::Auto => {
-            if env("NO_COLOR").is_some_and(|v| !v.is_empty()) || !is_tty {
+            if env("NO_COLOR").is_some_and(|v| !v.is_empty()) || !capable {
                 ColorMode::None
             } else {
                 rich()
@@ -130,7 +139,8 @@ fn list(names_only: bool) -> Result<()> {
     Ok(())
 }
 
-/// Puts the terminal back however the run ends (including a panic, which unwinds).
+/// Puts the terminal back however the run ends: a normal end, an error, a
+/// panic (which unwinds) or a termination signal (turned into a flag below).
 struct TerminalGuard;
 
 impl TerminalGuard {
@@ -149,32 +159,88 @@ impl Drop for TerminalGuard {
     }
 }
 
+/// Signals that would otherwise kill the process with the terminal still in
+/// raw mode. Each sets a flag the loop checks, so the guard can restore the
+/// terminal before the process exits with the usual 128 + signal status.
+struct Signals {
+    flags: Vec<(i32, Arc<AtomicBool>)>,
+}
+
+impl Signals {
+    #[cfg(unix)]
+    fn register() -> Result<Signals> {
+        use signal_hook::consts::{SIGHUP, SIGINT, SIGTERM};
+        let mut flags = Vec::new();
+        for sig in [SIGTERM, SIGHUP, SIGINT] {
+            let flag = Arc::new(AtomicBool::new(false));
+            signal_hook::flag::register(sig, Arc::clone(&flag))
+                .with_context(|| format!("cannot handle signal {sig}"))?;
+            flags.push((sig, flag));
+        }
+        Ok(Signals { flags })
+    }
+
+    #[cfg(not(unix))]
+    fn register() -> Result<Signals> {
+        Ok(Signals { flags: Vec::new() })
+    }
+
+    /// The signal that should end the run, if one arrived. SIGINT (sent by
+    /// another process; the keyboard's Ctrl+C is a key in raw mode) is ignored
+    /// like the original sl unless `escape` is set.
+    fn pending(&self, escape: bool) -> Option<i32> {
+        #[cfg(unix)]
+        let int = signal_hook::consts::SIGINT;
+        #[cfg(not(unix))]
+        let int = 2;
+        self.flags.iter().find_map(|(sig, flag)| {
+            let raised = flag.swap(false, Ordering::Relaxed);
+            (raised && (*sig != int || escape)).then_some(*sig)
+        })
+    }
+}
+
 fn is_quit(k: &KeyEvent) -> bool {
     k.kind == KeyEventKind::Press
         && (matches!(k.code, KeyCode::Char('q') | KeyCode::Esc)
             || (k.code == KeyCode::Char('c') && k.modifiers.contains(KeyModifiers::CONTROL)))
 }
 
-/// Wait until `deadline`, reading keys. Returns true when the run should stop.
-fn wait(deadline: Instant, escape: bool) -> Result<bool> {
+enum Stop {
+    Key,
+    Signal(i32),
+}
+
+/// Wait until `deadline`, reading keys and checking signals; always looks at
+/// least once, even when the deadline has already passed.
+fn wait(deadline: Instant, escape: bool, signals: &Signals) -> Result<Option<Stop>> {
     loop {
-        let now = Instant::now();
-        if now >= deadline {
-            return Ok(false);
+        if let Some(sig) = signals.pending(escape) {
+            return Ok(Some(Stop::Signal(sig)));
         }
-        if event::poll(deadline - now)? {
+        let left = deadline.saturating_duration_since(Instant::now());
+        match event::poll(left) {
             // Keys are read even when they are ignored, so they do not pile
             // up and spill into the shell afterwards.
-            if let Event::Key(k) = event::read()? {
-                if escape && is_quit(&k) {
-                    return Ok(true);
+            Ok(true) => {
+                if let Event::Key(k) = event::read()? {
+                    if escape && is_quit(&k) {
+                        return Ok(Some(Stop::Key));
+                    }
                 }
             }
+            Ok(false) => {}
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
+            Err(e) => return Err(e.into()),
+        }
+        if Instant::now() >= deadline {
+            return Ok(None);
         }
     }
 }
 
-fn run(scene: &Scene, mode: ColorMode, escape: bool) -> Result<()> {
+/// Run the scene. Returns the signal that stopped it, if any.
+fn run(scene: &Scene, mode: ColorMode, escape: bool, signals: &Signals) -> Result<Option<i32>> {
     let _guard = TerminalGuard::enter()?;
     let mut out = io::stdout();
     let mut next = Instant::now();
@@ -188,26 +254,40 @@ fn run(scene: &Scene, mode: ColorMode, escape: bool) -> Result<()> {
         }
         let after = passed_at.map(|p| step - p);
         if after.is_some_and(|a| a >= scene.after_steps()) {
-            return Ok(());
+            return Ok(None);
         }
         let grid = scene.render(step, w, h, after);
         out.write_all(grid_to_ansi(&grid, mode).as_bytes())?;
         out.flush()?;
-        next += STEP;
-        if wait(next, escape)? {
-            return Ok(());
+        // When drawing fell behind (a slow terminal, or the process was
+        // stopped), start again from now instead of drawing every missed frame.
+        next = (next + STEP).max(Instant::now());
+        match wait(next, escape, signals)? {
+            None => {}
+            Some(Stop::Key) => return Ok(None),
+            Some(Stop::Signal(sig)) => return Ok(Some(sig)),
         }
         step += 1;
     }
 }
 
-fn pick(cli: &Cli, rng: &mut Rng) -> Result<Vehicle> {
+fn load(cli: &Cli, rng: &mut Rng) -> Result<Vehicle> {
+    if let Some(path) = &cli.file {
+        let src = std::fs::read_to_string(path)
+            .with_context(|| format!("cannot read {}", path.display()))?;
+        return vehicle::parse(&src).with_context(|| format!("{}", path.display()));
+    }
     let name = if cli.linear {
         "maglev".to_string()
     } else if let Some(t) = &cli.train {
         t.clone()
     } else {
-        RANDOM_POOL[rng.below(RANDOM_POOL.len() as u64) as usize].to_string()
+        let pool: Vec<&str> = BUILTIN
+            .iter()
+            .filter(|(n, _)| vehicle::builtin(n).is_some_and(|v| v.random))
+            .map(|(n, _)| *n)
+            .collect();
+        pool[rng.below(pool.len() as u64) as usize].to_string()
     };
     match vehicle::builtin(&name) {
         Some(v) => Ok(v),
@@ -232,19 +312,18 @@ fn main() -> Result<()> {
             .map_or(0, |d| d.as_nanos() as u64)
     });
     let mut rng = Rng::new(seed);
-    let v = pick(&cli, &mut rng)?;
+    let v = load(&cli, &mut rng)?;
     let lang = match cli.lang {
         LangArg::Ja => Lang::Ja,
         LangArg::En => Lang::En,
         LangArg::Auto => Lang::from_env(env),
     };
-    let tty = io::stdout().is_terminal();
-    let mode = color_mode(cli.color, tty);
-    let cars = cli.cars.map_or(v.cars, usize::from);
+    let capable = capable_terminal();
+    let mode = color_mode(cli.color, capable);
     let minutes = 1 + rng.below(15) as u32;
     let scene = Scene {
         vehicle: &v,
-        cars,
+        cars: cli.cars.map_or(v.cars, usize::from),
         speed: cli.speed.map_or(v.speed, usize::from),
         fly: cli.fly,
         board: cli.delay.then(|| delay_message(&v, minutes, lang)),
@@ -253,7 +332,7 @@ fn main() -> Result<()> {
             Lang::En => v.after.clone(),
         },
     };
-    if cli.still || !tty {
+    if cli.still || !capable {
         let mut out = io::stdout().lock();
         if let Some(board) = &scene.board {
             writeln!(out, "{board}")?;
@@ -261,5 +340,10 @@ fn main() -> Result<()> {
         out.write_all(sprite_to_text(&scene.sprite(0), mode).as_bytes())?;
         return Ok(());
     }
-    run(&scene, mode, cli.escape)
+    let signals = Signals::register()?;
+    if let Some(sig) = run(&scene, mode, cli.escape, &signals)? {
+        // The guard has restored the terminal by now.
+        std::process::exit(128 + sig);
+    }
+    Ok(())
 }

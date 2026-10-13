@@ -70,3 +70,24 @@ fn rejects_unknown_trains_and_bad_numbers() {
 fn linear_is_the_maglev() {
     assert_eq!(sl(&["--linear"]).1, sl(&["--train", "maglev"]).1);
 }
+
+#[test]
+fn runs_a_train_from_a_file() {
+    let dir = std::env::temp_dir().join(format!("sl-neo-test-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let good = dir.join("mini.txt");
+    std::fs::write(&good, "name: mini\n[front]\n<o>\n[car]\n[ ]\n").unwrap();
+    let (ok, out, _) = sl(&["--file", good.to_str().unwrap(), "--cars", "1"]);
+    assert!(ok);
+    assert_eq!(out, "<o> [ ]\n");
+    let bad = dir.join("bad.txt");
+    std::fs::write(&bad, "name: bad\n[front]\nab\n--- mask\nZ\n[car]\nc\n").unwrap();
+    let (ok, _, err) = sl(&["--file", bad.to_str().unwrap()]);
+    assert!(!ok);
+    assert!(
+        err.contains("bad.txt") && err.contains("line 5: mask letter 'Z' has no color"),
+        "{err}"
+    );
+    assert!(!sl(&["--file", good.to_str().unwrap(), "--train", "e5"]).0);
+    std::fs::remove_dir_all(&dir).unwrap();
+}

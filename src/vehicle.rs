@@ -10,6 +10,7 @@
 //! speed: 2              columns per frame
 //! cars: 3               middle cars by default
 //! wheel: |/-\           characters an @ in the art cycles through
+//! random: no            never picked at random (optional; default yes)
 //! after: Too fast?      shown for a moment after the train has passed (optional)
 //! after_ja: 速すぎた?    the same in Japanese (optional)
 //! color G: #0d4a33 on #1f9b6b   foreground, and optionally "on" a background
@@ -145,6 +146,8 @@ pub struct Vehicle {
     pub cars: usize,
     /// Characters an `@` in the art cycles through; empty means `@` stays.
     pub wheel: Vec<char>,
+    /// Whether a run without --train may pick it (`random: no` to opt out).
+    pub random: bool,
     /// Shown after the train has passed (`after:` / `after_ja:`), if set.
     pub after: Option<String>,
     pub after_ja: Option<String>,
@@ -404,6 +407,7 @@ pub fn parse(src: &str) -> Result<Vehicle, ParseError> {
                         | "speed"
                         | "cars"
                         | "wheel"
+                        | "random"
                         | "after"
                         | "after_ja"
                 ) {
@@ -458,6 +462,17 @@ pub fn parse(src: &str) -> Result<Vehicle, ParseError> {
     let speed = number("speed", 1, 1, 200)?;
     let cars = number("cars", 2, 0, 50)?;
     let wheel: Vec<char> = get("wheel").unwrap_or("").chars().collect();
+    if let Some(bad) = wheel.iter().find(|c| !c.is_ascii_graphic()) {
+        return err(
+            header["wheel"].0,
+            format!("wheel characters must be printable ASCII, found {bad:?}"),
+        );
+    }
+    let random = match get("random") {
+        None | Some("yes") => true,
+        Some("no") => false,
+        Some(_) => return err(header["random"].0, "random must be yes or no"),
+    };
     let after = get("after").filter(|s| !s.is_empty()).map(str::to_string);
     let after_ja = get("after_ja")
         .filter(|s| !s.is_empty())
@@ -501,6 +516,7 @@ pub fn parse(src: &str) -> Result<Vehicle, ParseError> {
         speed,
         cars,
         wheel,
+        random,
         after,
         after_ja,
         front,

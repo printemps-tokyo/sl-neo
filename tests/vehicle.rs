@@ -177,3 +177,30 @@ fn trailing_blank_mask_rows_are_fine() {
     let v = parse("name: x\ncolor G: #000000\n[front]\nab\n--- mask\nGG\n\n\n[car]\nc\n").unwrap();
     assert_eq!(v.front.height(), 1);
 }
+
+#[test]
+fn wheel_and_random_are_checked() {
+    assert_eq!(
+        error_of("name: x\nwheel: |遅\n[front]\na\n[car]\nb\n"),
+        "line 2: wheel characters must be printable ASCII, found '遅'"
+    );
+    assert_eq!(
+        error_of("name: x\nrandom: maybe\n[front]\na\n[car]\nb\n"),
+        "line 2: random must be yes or no"
+    );
+    assert!(
+        !parse("name: x\nrandom: no\n[front]\na\n[car]\nb\n")
+            .unwrap()
+            .random
+    );
+}
+
+#[test]
+fn only_the_maglev_opts_out_of_random_picks() {
+    let random: Vec<&str> = BUILTIN
+        .iter()
+        .filter(|(n, _)| builtin(n).unwrap().random)
+        .map(|(n, _)| *n)
+        .collect();
+    assert_eq!(random, vec!["e5", "doctor-yellow", "yamanote", "steam"]);
+}

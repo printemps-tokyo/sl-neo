@@ -1,7 +1,7 @@
 //! One run across the screen: where the train is at each step, the delay
 //! board, and the message after a train has passed. Pure.
 
-use crate::screen::{compose, text_width, Grid, Sprite};
+use crate::screen::{compose, text_width, train_width, Grid, Sprite};
 use crate::vehicle::{Rgb, Vehicle};
 
 /// Steps the closing message (`after:`) stays on screen.
@@ -73,7 +73,7 @@ impl Scene<'_> {
 
     /// Whether the train is completely off the left edge.
     pub fn passed(&self, step: usize, width: usize) -> bool {
-        self.x(step, width) + self.sprite(0).width() as i64 <= 0
+        self.x(step, width) + train_width(self.vehicle, self.cars) as i64 <= 0
     }
 
     /// Top edge of the train.
@@ -94,12 +94,6 @@ impl Scene<'_> {
         if height == 0 || width == 0 {
             return g;
         }
-        if let Some(board) = &self.board {
-            g.fill_row(0, Some(BOARD_BG));
-            let span = width + text_width(board);
-            let x = width as i64 - (step % span) as i64;
-            g.text(x, 0, board, Some(BOARD_FG), Some(BOARD_BG));
-        }
         match after {
             None => {
                 let s = self.sprite(step);
@@ -111,6 +105,13 @@ impl Scene<'_> {
                     g.text(x.max(0), height / 2, msg, None, None);
                 }
             }
+        }
+        // The board goes on last, so a flying train passes behind it.
+        if let Some(board) = &self.board {
+            g.fill_row(0, Some(BOARD_BG));
+            let span = width + text_width(board);
+            let x = width as i64 - (step % span) as i64;
+            g.text(x, 0, board, Some(BOARD_FG), Some(BOARD_BG));
         }
         g
     }

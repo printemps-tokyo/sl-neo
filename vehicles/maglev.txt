@@ -4,6 +4,7 @@ title: maglev
 title_ja: リニア
 speed: 40
 cars: 2
+random: no
 after: ...That was the maglev. Too fast to see?
 after_ja: ……今のはリニアです。速すぎて見えませんでしたか？
 color m: #dfe5ea

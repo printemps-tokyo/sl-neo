@@ -31,3 +31,5 @@ jobs:
       # Not a terminal here, so each train is printed once, without animation.
       - run: ./target/release/sl-neo --list
       - run: for t in $(./target/release/sl-neo --list --names); do ./target/release/sl-neo --train "$t" --color never; done
+      # A pseudo-terminal: terminal restore on every exit, Ctrl+C, signals.
+      - run: python3 tests/pty_check.py target/release/sl-neo

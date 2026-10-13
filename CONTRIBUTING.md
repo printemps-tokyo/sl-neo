@@ -12,15 +12,21 @@ Thanks for your interest in contributing to sl-neo.
    cargo fmt --all -- --check
    cargo clippy --all-targets -- -D warnings
    cargo test --all
-   cargo run -- --train <name>
+   cargo build --release
+   python3 tests/pty_check.py target/release/sl-neo   # needs a Unix pty
    ```
 5. Commit and open a pull request
 
 ## Adding a train
 
-A train is one text file in `vehicles/`; no Rust is needed beyond adding the
-file to `BUILTIN` in `src/vehicle.rs`. The format is described at the top of
-`src/vehicle.rs`, and the existing files are the best examples.
+A train is one text file in `vehicles/`. The format is described at the top
+of `src/vehicle.rs`, and the existing files are the best examples.
+
+1. Draw it and try it: `cargo run -- --file vehicles/your-train.txt`
+   (mistakes are reported with a line number).
+2. Add it to `BUILTIN` in `src/vehicle.rs` and to the trains table in
+   `README.md`. It joins the random picks unless the header says `random: no`.
+3. `cargo test` checks every built-in train.
 
 - Draw your own art. Do not paste art from other programs or sites, including
   the original `sl`, unless its license allows it and you say so in the pull

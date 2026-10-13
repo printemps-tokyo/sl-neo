@@ -33,6 +33,12 @@ impl Sprite {
     }
 }
 
+/// Width of the train with `cars` middle cars, without composing it.
+pub fn train_width(v: &Vehicle, cars: usize) -> usize {
+    let parts = 1 + cars + usize::from(v.back.is_some());
+    v.front.width() + cars * v.car.width() + v.back.as_ref().map_or(0, Part::width) + (parts - 1)
+}
+
 /// The train at `step`, with `cars` middle cars.
 pub fn compose(v: &Vehicle, cars: usize, step: usize) -> Sprite {
     let mut parts: Vec<&Part> = vec![&v.front];
@@ -95,11 +101,21 @@ impl Grid {
         self.cells[y * self.width + x]
     }
 
+    /// Set one cell. Overwriting half of a wide character blanks its other
+    /// half, so a row never holds a wide character without its second cell.
     fn set(&mut self, x: i64, y: i64, cell: Cell) {
-        if x >= 0 && y >= 0 && (x as usize) < self.width && (y as usize) < self.height {
-            let i = y as usize * self.width + x as usize;
-            self.cells[i] = cell;
+        if x < 0 || y < 0 || x as usize >= self.width || y as usize >= self.height {
+            return;
         }
+        let (x, row) = (x as usize, y as usize * self.width);
+        let old = self.cells[row + x];
+        if old.ch == '\0' && x > 0 && cell.ch != '\0' {
+            self.cells[row + x - 1].ch = ' ';
+        }
+        if x + 1 < self.width && self.cells[row + x + 1].ch == '\0' && old.ch != '\0' {
+            self.cells[row + x + 1].ch = ' ';
+        }
+        self.cells[row + x] = cell;
     }
 
     /// Draw a sprite with its top-left corner at (x, y), which may be off screen.
@@ -172,28 +188,32 @@ pub enum ColorMode {
     None,
 }
 
-/// The nearest color in the xterm 256-color palette (cube 16-231, grays 232-255).
+/// Channel levels of the xterm 6x6x6 color cube (indexes 16-231).
+const CUBE: [u8; 6] = [0, 95, 135, 175, 215, 255];
+
+/// The nearest color in the xterm 256-color palette: the closest cube color
+/// or the closest gray of the ramp 232-255 (8 + 10 * i), whichever is nearer.
 pub fn ansi256(c: Rgb) -> u8 {
     let Rgb(r, g, b) = c;
-    if r == g && g == b {
-        if r < 8 {
-            return 16;
-        }
-        if r > 248 {
-            return 231;
-        }
-        return 232 + ((r as u16 - 8) * 24 / 247) as u8;
-    }
-    let q = |v: u8| -> u8 {
-        if v < 48 {
-            0
-        } else if v < 115 {
-            1
-        } else {
-            ((v as u16 - 35) / 40) as u8
-        }
+    let nearest = |v: u8| -> usize {
+        (0..6)
+            .min_by_key(|&i| (CUBE[i] as i32 - v as i32).abs())
+            .unwrap()
     };
-    16 + 36 * q(r) + 6 * q(g) + q(b)
+    let (ri, gi, bi) = (nearest(r), nearest(g), nearest(b));
+    let cube = Rgb(CUBE[ri], CUBE[gi], CUBE[bi]);
+    let avg = (r as i32 + g as i32 + b as i32) / 3;
+    let gi_ramp = ((avg - 8 + 5) / 10).clamp(0, 23);
+    let gray_level = (8 + 10 * gi_ramp) as u8;
+    let dist = |p: Rgb| -> i32 {
+        let d = |a: u8, b: u8| (a as i32 - b as i32).pow(2);
+        d(p.0, r) + d(p.1, g) + d(p.2, b)
+    };
+    if dist(Rgb(gray_level, gray_level, gray_level)) < dist(cube) {
+        232 + gi_ramp as u8
+    } else {
+        16 + 36 * ri as u8 + 6 * gi as u8 + bi as u8
+    }
 }
 
 fn sgr(out: &mut String, fg: Option<Rgb>, bg: Option<Rgb>, mode: ColorMode) {

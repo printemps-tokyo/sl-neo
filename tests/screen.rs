@@ -174,7 +174,39 @@ fn nearest_256_colors() {
     assert_eq!(ansi256(Rgb(255, 255, 255)), 231);
     assert_eq!(ansi256(Rgb(255, 0, 0)), 196);
     assert_eq!(ansi256(Rgb(0, 0, 255)), 21);
-    assert_eq!(ansi256(Rgb(128, 128, 128)), 243);
+    // The gray ramp is 8 + 10 * i from index 232: 128 is exactly 244.
+    assert_eq!(ansi256(Rgb(128, 128, 128)), 244);
+    assert_eq!(ansi256(Rgb(8, 8, 8)), 232);
+    assert_eq!(ansi256(Rgb(238, 238, 238)), 255);
+    // A near-gray color is closer to the ramp than to any cube color.
+    assert_eq!(ansi256(Rgb(0x2b, 0x2b, 0x2e)), 236);
+    // Exact cube colors map to themselves.
+    assert_eq!(ansi256(Rgb(95, 135, 175)), 16 + 36 + 6 * 2 + 3);
     // Levels 0, 95, 135, 175, 215, 255: 0x9a -> 135 (2), 0xcd -> 215 (4), 0x32 -> 95 (1).
     assert_eq!(ansi256(Rgb(0x9a, 0xcd, 0x32)), 16 + 36 * 2 + 6 * 4 + 1);
+}
+
+#[test]
+fn overwriting_half_of_a_wide_character_blanks_the_other_half() {
+    let mut g = Grid::new(6, 1);
+    g.text(0, 0, "遅延", None, None);
+    g.text(1, 0, "x", None, None); // over the second half of 遅
+    g.text(2, 0, "y", None, None); // over the first half of 延
+    let row: String = (0..6).map(|x| g.get(x, 0).ch).collect();
+    assert_eq!(row, " xy   ");
+    assert!((0..6).all(|x| g.get(x, 0).ch != '\0'));
+}
+
+#[test]
+fn train_width_matches_the_composed_train() {
+    for (name, _) in sl_neo::vehicle::BUILTIN {
+        let v = sl_neo::vehicle::builtin(name).unwrap();
+        for cars in [0, 1, 5] {
+            assert_eq!(
+                sl_neo::screen::train_width(&v, cars),
+                compose(&v, cars, 0).width(),
+                "{name} {cars}"
+            );
+        }
+    }
 }

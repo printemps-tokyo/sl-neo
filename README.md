@@ -18,7 +18,8 @@
 `sl` has been punishing `ls` typos since 1993. sl-neo keeps the joke and the
 rule that you have to wait for the train, and brings Japanese trains, solid
 24-bit color, a delay board and a maglev that is gone before you see it.
-Every train is a plain-text art file, so adding one needs no Rust.
+Every train is a plain-text art file: you can draw one and run it with
+`--file`, no Rust needed.
 
 ## Install
 
@@ -53,6 +54,7 @@ sl-neo --list
 | Option | Description |
 | --- | --- |
 | `-t, --train <NAME>` | Train to run; a random one (not the maglev) when omitted |
+| `--file <PATH>` | Run a train from a file in the [`vehicles/`](./vehicles) format |
 | `--list` | List the trains (`--names` for names only) |
 | `--cars <N>` | Middle cars, 0-20; each train has its own default |
 | `--speed <N>` | Columns per step, 1-200; each train has its own default |
@@ -67,10 +69,13 @@ sl-neo --list
 
 Like the original, Ctrl+C does nothing until the train has passed (the
 terminal is in raw mode, so keys are read and ignored rather than piling up in
-your shell). Pass `-e` if you would rather be able to stop it.
+your shell). Pass `-e` if you would rather be able to stop it. `SIGTERM` and
+`SIGHUP` always end the run, after the terminal is restored, with exit status
+128 + the signal; `SIGINT` from another process is ignored unless `-e`.
 
-When the output is not a terminal, or with `--still`, the train is printed
-once, without color unless `--color always`:
+When the output is not a terminal (or `TERM` is `dumb`), the train is printed
+once, without color unless `--color always`. `--still` prints it once on a
+terminal too, in color:
 
 ```text
    (  )    (    )
@@ -101,12 +106,17 @@ reads as a train with `--color never`.
 
 ## Adding a train
 
-A train is one file in [`vehicles/`](./vehicles): a few header lines, a color
-palette, and the art for the front, a car and (optionally) the back, each with
-a color mask underneath. The back can be the front mirrored. The format is
-documented at the top of [`src/vehicle.rs`](./src/vehicle.rs); the existing
-files are the best examples, and `cargo test` checks every built-in train. See
-[CONTRIBUTING.md](./CONTRIBUTING.md).
+A train is one text file: a few header lines, a color palette, and the art
+for the front, a car and (optionally) the back, each with a color mask
+underneath. The back can be the front mirrored. The format is documented at
+the top of [`src/vehicle.rs`](./src/vehicle.rs), and the files in
+[`vehicles/`](./vehicles) are the best examples.
+
+- Try your own train without building anything: `sl-neo --file my-train.txt`.
+  A mistake is reported with its line number.
+- To ship it with sl-neo, add the file to `vehicles/` and to `BUILTIN` in
+  `src/vehicle.rs`; `cargo test` then checks it. It joins the random picks
+  unless its header says `random: no`. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Credits and disclaimer
 

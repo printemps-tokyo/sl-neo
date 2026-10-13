@@ -125,3 +125,35 @@ fn rng_is_repeatable() {
     }
     assert!((0..1000).all(|_| a.below(5) < 5));
 }
+
+/// Every row of a grid, as the terminal would show it, is exactly `width` columns.
+fn columns(g: &sl_neo::screen::Grid, y: usize) -> usize {
+    (0..g.width)
+        .map(|x| g.get(x, y).ch)
+        .filter(|&c| c != '\0')
+        .map(|c| unicode_width::UnicodeWidthChar::width(c).unwrap_or(0))
+        .sum()
+}
+
+#[test]
+fn a_flying_train_passes_behind_the_japanese_board() {
+    let v = builtin("e5").unwrap();
+    let board = delay_message(&v, 5, Lang::Ja);
+    let s = Scene {
+        fly: true,
+        board: Some(board),
+        ..scene(&v)
+    };
+    for (w, h) in [(80, 24), (100, 30), (37, 12)] {
+        for step in 0..400 {
+            let g = s.render(step, w, h, None);
+            for y in 0..h {
+                assert_eq!(columns(&g, y), w, "step {step} row {y} at {w}x{h}");
+            }
+            assert!(
+                (0..w).all(|x| g.get(x, 0).bg.is_some()),
+                "the board row is intact at step {step}"
+            );
+        }
+    }
+}
