@@ -28,9 +28,9 @@ From source, with a Rust toolchain (https://rustup.rs):
 cargo install --git https://github.com/printemps-tokyo/sl-neo
 ```
 
-Prebuilt binaries for Linux (x86_64) and macOS (x86_64, Apple silicon) are
-attached to each [release](https://github.com/printemps-tokyo/sl-neo/releases),
-with SHA-256 checksums.
+Tagged [releases](https://github.com/printemps-tokyo/sl-neo/releases) carry
+prebuilt binaries for Linux (x86_64) and macOS (x86_64, Apple silicon), with
+SHA-256 checksums.
 
 Then make it your typo:
 
