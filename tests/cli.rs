@@ -91,3 +91,11 @@ fn runs_a_train_from_a_file() {
     assert!(!sl(&["--file", good.to_str().unwrap(), "--train", "e5"]).0);
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_file_name_with_control_characters_is_escaped_in_errors() {
+    let (ok, _, err) = sl(&["--file", "/nonexistent/evil\x1b[2J.txt"]);
+    assert!(!ok);
+    assert!(!err.contains('\x1b'), "{err:?}");
+    assert!(err.contains("cannot read"));
+}

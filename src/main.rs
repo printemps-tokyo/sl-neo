@@ -273,9 +273,9 @@ fn run(scene: &Scene, mode: ColorMode, escape: bool, signals: &Signals) -> Resul
 
 fn load(cli: &Cli, rng: &mut Rng) -> Result<Vehicle> {
     if let Some(path) = &cli.file {
-        let src = std::fs::read_to_string(path)
-            .with_context(|| format!("cannot read {}", path.display()))?;
-        return vehicle::parse(&src).with_context(|| format!("{}", path.display()));
+        // {:?} escapes the path, so a strange file name cannot drive the terminal.
+        let src = std::fs::read_to_string(path).with_context(|| format!("cannot read {path:?}"))?;
+        return vehicle::parse(&src).with_context(|| format!("{path:?}"));
     }
     let name = if cli.linear {
         "maglev".to_string()
