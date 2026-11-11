@@ -2,6 +2,7 @@
 name = "sl-neo"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.85"
 license = "MIT"
 description = "A modern sl: mistype ls and a shinkansen, Doctor Yellow, a Yamanote Line train, a steam locomotive or a maglev runs across your terminal in 24-bit color. Trains are plain-text art files."
 authors = ["printemps.tokyo <develop@printemps.tokyo>"]
