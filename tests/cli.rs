@@ -19,7 +19,10 @@ fn sl(args: &[&str]) -> (bool, String, String) {
 fn lists_the_trains() {
     let (ok, out, _) = sl(&["--list", "--names"]);
     assert!(ok);
-    assert_eq!(out, "e5\ndoctor-yellow\nyamanote\nsteam\nmaglev\n");
+    assert_eq!(
+        out,
+        "e5\ndoctor-yellow\nyamanote\nsteam\nmaglev\nfreight\ntram\nsleeper\n"
+    );
     let (_, out, _) = sl(&["--list"]);
     assert!(out.contains("E5-style shinkansen  (E5系風の新幹線)"));
 }
@@ -98,4 +101,62 @@ fn a_file_name_with_control_characters_is_escaped_in_errors() {
     assert!(!ok);
     assert!(!err.contains('\x1b'), "{err:?}");
     assert!(err.contains("cannot read"));
+}
+
+#[test]
+fn check_reviews_a_contribution() {
+    let dir = std::env::temp_dir().join(format!("sl-neo-check-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    for name in ["e5", "freight", "tram", "sleeper"] {
+        let path = format!("{}/vehicles/{name}.txt", env!("CARGO_MANIFEST_DIR"));
+        let (ok, out, err) = sl(&["--check", &path]);
+        assert!(ok, "{name}: {out}{err}");
+        assert!(out.contains("ok: ready to contribute"), "{out}");
+    }
+    let good = "# Original art for sl-neo.\nname: box\ntitle: Box car\ntitle_ja: 箱\nspeed: 1\ncars: 1\n\n[front]\n[]\n[car]\n[]\n";
+    let path = dir.join("box.txt");
+    std::fs::write(&path, good).unwrap();
+    let (ok, out, _) = sl(&["--check", path.to_str().unwrap()]);
+    assert!(ok, "{out}");
+    assert!(out.contains("[front] 2x1, 1 frame"), "{out}");
+    assert!(out.contains("1 car by default"), "{out}");
+
+    // Taken name, no Japanese title, no original-art note.
+    let bad = "name: e5\ntitle: Box\ntitle_ja:\nspeed: 1\ncars: 1\n\n[front]\n[]\n[car]\n[]\n";
+    std::fs::write(&path, bad).unwrap();
+    let (ok, out, _) = sl(&["--check", path.to_str().unwrap()]);
+    assert!(!ok);
+    assert!(out.contains("already a built-in train"), "{out}");
+    assert!(out.contains("title_ja"), "{out}");
+    assert!(
+        out.contains("warning: start the file with a comment"),
+        "{out}"
+    );
+    assert!(out.contains("not ready"), "{out}");
+
+    // Titles the parser would fill in still count as missing; an English
+    // after: alone is worth a warning.
+    let untitled =
+        "# Original art.\nname: plain\nspeed: 1\ncars: 1\nafter: Bye\n\n[front]\n[]\n[car]\n[]\n";
+    std::fs::write(&path, untitled).unwrap();
+    let (ok, out, _) = sl(&["--check", path.to_str().unwrap()]);
+    assert!(!ok, "{out}");
+    assert!(out.contains("give both title: and title_ja:"), "{out}");
+    assert!(out.contains("give after: and after_ja: together"), "{out}");
+
+    // Wide characters are refused by the parser, with the line.
+    let wide = "# Original art.\nname: w\ntitle: W\ntitle_ja: W\nspeed: 1\ncars: 1\n\n[front]\n[\u{25a0}]\n[car]\n[]\n";
+    std::fs::write(&path, wide).unwrap();
+    let (ok, out, _) = sl(&["--check", path.to_str().unwrap()]);
+    assert!(!ok);
+    assert!(out.contains("line 9: art must be printable ASCII"), "{out}");
+
+    // A file that does not parse reports the line.
+    std::fs::write(&path, "name: x\n[front]\n").unwrap();
+    let (ok, out, _) = sl(&["--check", path.to_str().unwrap()]);
+    assert!(!ok);
+    assert!(out.contains("error:"), "{out}");
+    let (ok, _, _) = sl(&["--check", path.to_str().unwrap(), "--train", "e5"]);
+    assert!(!ok);
+    std::fs::remove_dir_all(&dir).ok();
 }

@@ -202,7 +202,18 @@ fn only_the_maglev_opts_out_of_random_picks() {
         .filter(|(n, _)| builtin(n).unwrap().random)
         .map(|(n, _)| *n)
         .collect();
-    assert_eq!(random, vec!["e5", "doctor-yellow", "yamanote", "steam"]);
+    assert_eq!(
+        random,
+        vec![
+            "e5",
+            "doctor-yellow",
+            "yamanote",
+            "steam",
+            "freight",
+            "tram",
+            "sleeper"
+        ]
+    );
 }
 
 #[test]

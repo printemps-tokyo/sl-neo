@@ -1,0 +1,51 @@
+name: Train proposal
+description: Propose a new train for sl-neo (or send it as a pull request right away)
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for drawing a train. The format is described at the top of
+        `src/vehicle.rs`; `sl-neo --file your-train.txt` runs it and
+        `sl-neo --check your-train.txt` tells you whether it is ready.
+        See CONTRIBUTING.md, "Adding a train".
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: The --train name, lowercase letters, digits and -.
+      placeholder: night-ferry-train
+    validations:
+      required: true
+  - type: input
+    id: titles
+    attributes:
+      label: Titles
+      description: An English and a Japanese title, as in --list.
+      placeholder: Blue night express / 青い寝台特急
+    validations:
+      required: true
+  - type: textarea
+    id: art
+    attributes:
+      label: The train file
+      description: Paste the whole file here (this field takes text, not attachments). ASCII art only.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: check
+    attributes:
+      label: Output of sl-neo --check
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: original
+    attributes:
+      label: Original art
+      options:
+        - label: I drew this art myself; it is not copied from sl, other programs or sites. I agree to it being published under the MIT license of this project.
+          required: true
+        - label: It does not use railway company logos or names as if the project were affiliated with them ("in the style of" is fine).
+          required: true

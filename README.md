@@ -1,6 +1,6 @@
 # sl-neo
 
-> A modern `sl`: mistype `ls` and a shinkansen, Doctor Yellow, a Yamanote Line train, a steam locomotive or a maglev runs across your terminal, in 24-bit color.
+> A modern `sl`: mistype `ls` and a shinkansen, Doctor Yellow, a Yamanote Line train, a steam locomotive, a freight train, a streetcar, a night express or a maglev runs across your terminal, in 24-bit color. Linux, macOS and Windows.
 
 [![CI](https://github.com/printemps-tokyo/sl-neo/actions/workflows/ci.yml/badge.svg)](https://github.com/printemps-tokyo/sl-neo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
@@ -30,14 +30,25 @@ cargo install --git https://github.com/printemps-tokyo/sl-neo
 ```
 
 Tagged [releases](https://github.com/printemps-tokyo/sl-neo/releases) carry
-prebuilt binaries for Linux (x86_64) and macOS (x86_64, Apple silicon), with
-SHA-256 checksums.
+prebuilt binaries for Linux (x86_64), macOS (x86_64, Apple silicon) and
+Windows (x86_64, a zip with `sl-neo.exe`), with SHA-256 checksums.
 
 Then make it your typo:
 
 ```bash
 alias sl=sl-neo     # in ~/.zshrc or ~/.bashrc
 ```
+
+```powershell
+Set-Alias sl sl-neo   # in your PowerShell $PROFILE
+```
+
+On Windows, sl-neo runs in Windows Terminal and in the classic console of
+Windows 10 and later: it switches on the console's escape-sequence processing
+and falls back to printing the train once if the console refuses. Windows
+Terminal gets 24-bit color (it is recognized by the `WT_SESSION` variable it
+sets). The keys work as elsewhere; there are no Unix signals, so closing the
+window simply ends it.
 
 ## Usage
 
@@ -55,6 +66,7 @@ sl-neo --list
 | --- | --- |
 | `-t, --train <NAME>` | Train to run; a random one (not the maglev) when omitted |
 | `--file <PATH>` | Run a train from a file in the [`vehicles/`](./vehicles) format |
+| `--check <PATH>` | Check a train file before contributing it: a summary, the contribution rules, exit 1 on an error |
 | `--list` | List the trains (`--names` for names only) |
 | `--cars <N>` | Middle cars, 0-20; each train has its own default |
 | `--speed <N>` | Columns per step, 1-200; each train has its own default |
@@ -97,11 +109,14 @@ terminal too, in color:
 | `yamanote` | Yamanote Line-style commuter train: silver with yellow-green doors and band |
 | `steam` | Steam locomotive with a tender and coaches, and smoke |
 | `maglev` | A maglev. It floats, so there are no wheels. It is also very fast |
+| `freight` | Container freight train behind a red electric locomotive with two pantographs |
+| `tram` | City streetcar: cream and green, a single pantograph, a cab at each end |
+| `sleeper` | Blue night express: a locomotive with a headboard and blue sleeper cars |
 
 ### Colors
 
-24-bit color is used when `COLORTERM` is `truecolor` or `24bit`; otherwise the
-nearest colors of the 256-color palette. The art is drawn so that it still
+24-bit color is used when `COLORTERM` is `truecolor` or `24bit`, or in
+Windows Terminal; otherwise the nearest colors of the 256-color palette. The art is drawn so that it still
 reads as a train with `--color never`.
 
 ## Adding a train
@@ -114,9 +129,25 @@ the top of [`src/vehicle.rs`](./src/vehicle.rs), and the files in
 
 - Try your own train without building anything: `sl-neo --file my-train.txt`.
   A mistake is reported with its line number.
+- `sl-neo --check my-train.txt` prints its parts and sizes and applies the
+  rules a contributed train must meet: a plain name not already taken, an
+  English and a Japanese title, ASCII art (one column per character
+  everywhere), at most 12 rows so it fits an ordinary terminal, and a first
+  comment line saying the art is original.
 - To ship it with sl-neo, add the file to `vehicles/` and to `BUILTIN` in
   `src/vehicle.rs`; `cargo test` then checks it. It joins the random picks
   unless its header says `random: no`. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+### Trains wanted
+
+New trains are welcome, from anywhere in the world. Send a pull request, or,
+if you would rather not touch the code, open a
+[train proposal](https://github.com/printemps-tokyo/sl-neo/issues/new?template=train.yml)
+with the file and the output of `sl-neo --check`; a maintainer adds it. Some
+ideas nobody has drawn yet: a monorail, a rack railway climbing a mountain, a
+snowplow, a double-decker, a cable car, a toy train with a smiling face, your
+local line. The art must be your own (it is published under this project's
+MIT license); "in the style of" a real train is fine, company logos are not.
 
 ## Credits and disclaimer
 

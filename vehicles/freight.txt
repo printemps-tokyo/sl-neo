@@ -1,0 +1,51 @@
+# Container freight train behind an electric locomotive. Original art for sl-neo.
+name: freight
+title: Container freight train
+title_ja: コンテナ貨物列車
+speed: 1
+cars: 3
+wheel: |/-\
+after: Your parcel is on its way.
+after_ja: 荷物は順調に運ばれています。
+color p: #b0b4b8
+color R: #f2f2f2 on #b8322a
+color W: #b8322a on #f2f2f2
+color K: #1b1b1b on #c8d8e8
+color H: #fff3a0 on #b8322a
+color b: #3a3a3a
+color D: #9a9a9a
+color B: #f2f2f2 on #2f6fb3
+color G: #f2f2f2 on #2e8b57
+color F: #c8ccd0 on #4a4e52
+
+[front]
+     _/\_      _/\_
+ ____|__|______|__|_____
+|[__]  ______   ______  |
+|      |    |   |    |  |
+| ()   |____|   |____|  |
+|______________________|_
+  (@)(@)(@)     (@)(@)(@)
+--- mask
+     pppp      pppp
+ RRRRRRRRRRRRRRRRRRRRRRR
+RKKKKRRRRRRRRRRRRRRRRRRRR
+RRRRRRRWWWWRRRRRWWWWRRRRR
+RHHRRRRWWWWRRRRRWWWWRRRRR
+WWWWWWWWWWWWWWWWWWWWWWWWW
+  DDDDDDDDD     DDDDDDDDD
+
+[car]
+ ____________ ____________
+|  :  :  :  ||  :  :  :  |
+|  :  :  :  ||  :  :  :  |
+|__:__:__:__||__:__:__:__|
+=============================
+   (@)(@)           (@)(@)
+--- mask
+ BBBBBBBBBBBB GGGGGGGGGGGG
+BBBBBBBBBBBBBGGGGGGGGGGGGG
+BBBBBBBBBBBBBGGGGGGGGGGGGG
+BBBBBBBBBBBBBGGGGGGGGGGGGG
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+   DDDDDD           DDDDDD

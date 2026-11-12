@@ -1,0 +1,49 @@
+# Night express with blue sleeper cars. Original art for sl-neo.
+name: sleeper
+title: Blue night express
+title_ja: 青い寝台特急
+speed: 2
+cars: 4
+wheel: |/-\
+after: Good night. Arriving at dawn.
+after_ja: おやすみなさい。到着は明け方です。
+color p: #b0b4b8
+color L: #e8e8e8 on #1f3f8f
+color S: #f2f2f2 on #1f3f8f
+color K: #fff3a0 on #0f1f4a
+color N: #0f1f4a on #f2f2f2
+color H: #fff3a0 on #1f3f8f
+color R: #f2f2f2 on #8f1f2a
+color D: #9a9a9a
+
+[front]
+       _/\_
+  _____|__|______________
+ /[__]  _|NIGHT|_        |
+|  ___  ___  ___  ___    |
+| ()=======================
+|_________________________|
+   (@)(@)(@)   (@)(@)(@)
+--- mask
+       pppp
+  LLLLLLLLLLLLLLLLLLLLLLL
+ LKKKKLLLRNNNNNRLLLLLLLLLL
+LLLLLLLLLLLLLLLLLLLLLLLLLL
+LHHLSSSSSSSSSSSSSSSSSSSSSSS
+LLLLLLLLLLLLLLLLLLLLLLLLLLL
+   DDDDDDDDD   DDDDDDDDD
+
+[car]
+ _____________________________
+|  ___   ___   ___   ___   ___|
+| |___| |___| |___| |___| |___|
+|=============================|
+|_____________________________|
+   (@)(@)             (@)(@)
+--- mask
+ LLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LLLKKKLLLKKKLLLKKKLLLKKKLLLKKKL
+LLKKKKKLKKKKKLKKKKKLKKKKKLKKKKK
+LSSSSSSSSSSSSSSSSSSSSSSSSSSSSSL
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+   DDDDDD             DDDDDD

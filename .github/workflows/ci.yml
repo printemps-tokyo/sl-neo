@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -30,9 +30,16 @@ jobs:
       - run: cargo build --release
       # Not a terminal here, so each train is printed once, without animation.
       - run: ./target/release/sl-neo --list
+        shell: bash
       - run: for t in $(./target/release/sl-neo --list --names); do ./target/release/sl-neo --train "$t" --color never; done
+        shell: bash
+      # Every train file passes the checks a contribution must pass.
+      - run: for f in vehicles/*.txt; do ./target/release/sl-neo --check "$f"; done
+        shell: bash
       # A pseudo-terminal: terminal restore on every exit, Ctrl+C, signals.
-      - run: python3 tests/pty_check.py target/release/sl-neo
+      # Python's pty module is Unix only.
+      - if: runner.os != 'Windows'
+        run: python3 tests/pty_check.py target/release/sl-neo
 
   # The oldest Rust this crate promises to build with (rust-version in
   # Cargo.toml). A dependency update that needs a newer one fails here.

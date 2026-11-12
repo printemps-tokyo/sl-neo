@@ -38,7 +38,7 @@ enum LangArg {
     long_about = "A modern sl: mistype ls and a train runs across your terminal, in 24-bit color.\n\
                   Like the original sl, Ctrl+C does nothing until the train has passed; pass -e to allow it.\n\
                   Make it your typo with: alias sl=sl-neo",
-    after_help = "Trains: e5, doctor-yellow, yamanote, steam, maglev (see --list).\n\
+    after_help = "Trains: e5, doctor-yellow, yamanote, steam, maglev, freight, tram, sleeper (see --list).\n\
                   When the output is not a terminal (or TERM=dumb), or with --still, the train is printed once."
 )]
 struct Cli {
@@ -53,6 +53,11 @@ struct Cli {
     /// List the trains and exit
     #[arg(long)]
     list: bool,
+
+    /// Check a train file before contributing it: parse it, apply the
+    /// contribution rules, print a summary; exit 1 on an error
+    #[arg(long, value_name = "PATH", conflicts_with_all = ["train", "file", "list", "linear"])]
+    check: Option<PathBuf>,
 
     /// With --list, print only the names, one per line
     #[arg(long, requires = "list")]
@@ -103,14 +108,22 @@ fn env(k: &str) -> Option<String> {
     std::env::var(k).ok()
 }
 
-/// A terminal that can take cursor moves and colors: a TTY whose TERM is not "dumb".
+/// A terminal that can take cursor moves and colors: a TTY whose TERM is not
+/// "dumb". On Windows the console must also accept escape sequences, which
+/// crossterm switches on (virtual terminal processing) and reports.
 fn capable_terminal() -> bool {
-    io::stdout().is_terminal() && env("TERM").as_deref() != Some("dumb")
+    let tty = io::stdout().is_terminal() && env("TERM").as_deref() != Some("dumb");
+    #[cfg(windows)]
+    let tty = tty && crossterm::ansi_support::supports_ansi();
+    tty
 }
 
 fn color_mode(arg: ColorArg, capable: bool) -> ColorMode {
+    // Windows Terminal sets WT_SESSION in every shell it starts and draws
+    // 24-bit color, but does not set COLORTERM.
     let rich = || match env("COLORTERM").as_deref() {
         Some("truecolor") | Some("24bit") => ColorMode::TrueColor,
+        _ if env("WT_SESSION").is_some_and(|v| !v.is_empty()) => ColorMode::TrueColor,
         _ => ColorMode::Ansi256,
     };
     match arg {
@@ -301,10 +314,76 @@ fn load(cli: &Cli, rng: &mut Rng) -> Result<Vehicle> {
     }
 }
 
+/// --check: a summary of the train and what the contribution rules say.
+fn check(path: &std::path::Path) -> Result<bool> {
+    let src = std::fs::read_to_string(path).with_context(|| format!("cannot read {path:?}"))?;
+    let mut out = io::stdout().lock();
+    let v = match vehicle::parse(&src) {
+        Ok(v) => v,
+        Err(e) => {
+            writeln!(out, "{path:?}: error: {e}")?;
+            return Ok(false);
+        }
+    };
+    writeln!(out, "{:?}: {} ({} / {})", path, v.name, v.title, v.title_ja)?;
+    let mut parts = vec![("front", &v.front), ("car", &v.car)];
+    if let Some(b) = &v.back {
+        parts.push(("back", b));
+    }
+    for (label, p) in &parts {
+        writeln!(
+            out,
+            "  [{label}] {}x{}, {} frame{}",
+            p.width(),
+            p.height(),
+            p.frames.len(),
+            if p.frames.len() == 1 { "" } else { "s" }
+        )?;
+    }
+    writeln!(
+        out,
+        "  speed {}, {} car{} by default, {}",
+        v.speed,
+        v.cars,
+        if v.cars == 1 { "" } else { "s" },
+        if v.random {
+            "picked at random"
+        } else {
+            "never picked at random"
+        }
+    )?;
+    let findings = vehicle::review(&v, &src);
+    for f in &findings {
+        writeln!(
+            out,
+            "  {}: {}",
+            if f.error { "error" } else { "warning" },
+            f.message
+        )?;
+    }
+    let ok = !findings.iter().any(|f| f.error);
+    writeln!(
+        out,
+        "  {}",
+        if ok {
+            "ok: ready to contribute (see CONTRIBUTING.md)"
+        } else {
+            "not ready: fix the errors above"
+        }
+    )?;
+    Ok(ok)
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     if cli.list {
         return list(cli.names);
+    }
+    if let Some(path) = &cli.check {
+        if !check(path)? {
+            std::process::exit(1);
+        }
+        return Ok(());
     }
     let seed = cli.seed.unwrap_or_else(|| {
         SystemTime::now()

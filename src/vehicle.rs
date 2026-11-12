@@ -545,7 +545,113 @@ pub const BUILTIN: &[(&str, &str)] = &[
     ("yamanote", include_str!("../vehicles/yamanote.txt")),
     ("steam", include_str!("../vehicles/steam.txt")),
     ("maglev", include_str!("../vehicles/maglev.txt")),
+    ("freight", include_str!("../vehicles/freight.txt")),
+    ("tram", include_str!("../vehicles/tram.txt")),
+    ("sleeper", include_str!("../vehicles/sleeper.txt")),
 ];
+
+/// The tallest part a train may have and still fit an ordinary terminal
+/// (24 rows) with the delay board above it and room to fly.
+pub const MAX_HEIGHT: usize = 12;
+
+/// A finding of `review`: an error stops a train from being accepted, a
+/// warning is worth a look.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Finding {
+    pub error: bool,
+    pub message: String,
+}
+
+/// The checks a contributed train must pass beyond parsing: a plain name
+/// that is not taken, both titles, ASCII art (one column per character
+/// everywhere), a height that fits a terminal, and the original-art note
+/// the existing files carry.
+pub fn review(v: &Vehicle, src: &str) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let mut err = |m: String| {
+        out.push(Finding {
+            error: true,
+            message: m,
+        })
+    };
+    if v.name.is_empty()
+        || !v
+            .name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    {
+        err(format!(
+            "name {:?}: use lowercase letters, digits and -",
+            v.name
+        ));
+    }
+    // The built-in file itself passes, whatever its line endings.
+    let same = |a: &str, b: &str| a.replace("\r\n", "\n") == b.replace("\r\n", "\n");
+    if BUILTIN.iter().any(|(n, s)| *n == v.name && !same(s, src)) {
+        err(format!("name {:?} is already a built-in train", v.name));
+    }
+    // The parser fills a missing title from the name (and title_ja from
+    // title), so the header itself is what tells whether both were given.
+    let given = header_values(src);
+    let has = |key: &str| given.iter().any(|(k, v)| k == key && !v.is_empty());
+    if !has("title") || !has("title_ja") {
+        err("give both title: and title_ja:".to_string());
+    }
+    let mut parts = vec![("front", &v.front), ("car", &v.car)];
+    if let Some(b) = &v.back {
+        parts.push(("back", b));
+    }
+    for (label, part) in &parts {
+        for (fi, frame) in part.frames.iter().enumerate() {
+            let bad: Vec<char> = frame
+                .rows
+                .iter()
+                .flatten()
+                .map(|c| c.ch)
+                .filter(|c| !(c.is_ascii_graphic() || *c == ' '))
+                .collect();
+            if let Some(c) = bad.first() {
+                err(format!(
+                    "[{label}] frame {}: {c:?} is not printable ASCII; use ASCII so every character is one column wide",
+                    fi + 1
+                ));
+            }
+        }
+        if part.height() > MAX_HEIGHT {
+            err(format!(
+                "[{label}] is {} rows tall; at most {MAX_HEIGHT} fit an ordinary terminal",
+                part.height()
+            ));
+        }
+    }
+    let mut warn = |m: String| {
+        out.push(Finding {
+            error: false,
+            message: m,
+        })
+    };
+    let first = src.lines().next().unwrap_or("");
+    if !(first.starts_with('#') && first.to_ascii_lowercase().contains("original art")) {
+        warn(
+            "start the file with a comment saying the art is original, like the built-in trains"
+                .into(),
+        );
+    }
+    if has("after") != has("after_ja") {
+        warn("give after: and after_ja: together, or neither".into());
+    }
+    out
+}
+
+/// The `key: value` lines before the first section, as written.
+fn header_values(src: &str) -> Vec<(String, String)> {
+    src.lines()
+        .take_while(|l| !l.starts_with('['))
+        .filter(|l| !l.trim_start().starts_with('#'))
+        .filter_map(|l| l.split_once(':'))
+        .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+        .collect()
+}
 
 /// The built-in train with this name.
 pub fn builtin(name: &str) -> Option<Vehicle> {

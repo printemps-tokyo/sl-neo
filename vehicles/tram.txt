@@ -1,0 +1,70 @@
+# City streetcar. Original art for sl-neo.
+name: tram
+title: City streetcar
+title_ja: 路面電車
+speed: 1
+cars: 1
+wheel: o0Oo
+after: Ding ding! Next stop, please.
+after_ja: チンチン。次は終点です。
+color p: #3a3a3a
+color C: #2b2b2b on #f3e9c8
+color A: #f3e9c8 on #2e7d4f
+color K: #d6ecff on #22313b
+color H: #fff3a0 on #2e7d4f
+color D: #707070
+
+[front]
+        /\
+    ___/__\___
+   /          |
+  / [__] [__] |
+ |             |
+ |  ()  _____  |
+ |______|___|__|
+   (@)    (@)
+--- mask
+        pp
+    CCCCCCCCCC
+   CCCCCCCCCCCC
+  CCKKKKCKKKKCC
+ AAAAAAAAAAAAAAA
+ AAHHAAAAAAAAAAA
+ AAAAAAAAAAAAAAA
+   DDD    DDD
+
+[car]
+_______________
+              |
+ [__] [__] [__]
+               
+   _____       
+___|___|_______
+  (@)     (@)
+--- mask
+CCCCCCCCCCCCCCC
+CCCCCCCCCCCCCCC
+CKKKKCKKKKCKKKK
+AAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAA
+  DDD     DDD
+
+[back]
+
+  __________
+ |          \
+ | [__] [__] \
+|             |
+|  _____  ()  |
+|__|___|______|
+   (@)    (@)
+--- mask
+
+  CCCCCCCCCC
+ CCCCCCCCCCCC
+ CCKKKKCKKKKCC
+AAAAAAAAAAAAAAA
+AAAAAAAAAAAHHAA
+AAAAAAAAAAAAAAA
+   DDD    DDD
